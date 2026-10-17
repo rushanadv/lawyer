@@ -3,7 +3,7 @@ import type { Lawyer, IntakeFilters } from './types';
 import { SAMPLE_LAWYERS } from './data/lawyers';
 import { Navbar } from './components/Navbar';
 import { CinematicGavelHero } from './components/CinematicGavelHero';
-import { VerdictTransition } from './components/VerdictTransition';
+import { TypographicManifesto3D } from './components/TypographicManifesto3D';
 import { LegalIntake } from './components/LegalIntake';
 import { DecisionDesk } from './components/DecisionDesk';
 import { HowItWorks } from './components/HowItWorks';
@@ -132,11 +132,11 @@ export const App: React.FC = () => {
       <main>
         {/* 1. Photorealistic 3D Courtroom Verdict Sequence */}
         <CinematicGavelHero
-          onExploreClick={() => scrollToSection('transition-section')}
+          onExploreClick={() => scrollToSection('manifesto-section')}
         />
 
-        {/* 2. The Verdict to Discovery Editorial Transition */}
-        <VerdictTransition
+        {/* 2. Cinematic 3D Typographic Manifesto (JUSTICE · ACCESS · CLARITY) */}
+        <TypographicManifesto3D
           onProceedToIntake={() => scrollToSection('intake-section')}
         />
 

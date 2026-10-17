@@ -252,12 +252,23 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
         camera.position.z = THREE.MathUtils.lerp(6.8, 6.4, t);
         camera.lookAt(-1.4, -0.7, 0.0);
       } else {
-        // Phase 6 (90–100%): Seamless camera transition pushing toward bench desk surface
+        // Phase 6 (90–100%): Seamless camera transition pushing forward into dark atmospheric void
         const t = (progress - 0.90) / 0.10;
         camera.position.x = THREE.MathUtils.lerp(2.4, 1.2, t);
         camera.position.y = THREE.MathUtils.lerp(0.45, -0.4, t);
         camera.position.z = THREE.MathUtils.lerp(6.4, 3.6, t);
         camera.lookAt(-1.4, THREE.MathUtils.lerp(-0.7, -1.2, t), 0.0);
+
+        // Environmental lighting dims naturally using scene depth, not CSS fade
+        if (sceneData.keyLight) {
+          sceneData.keyLight.intensity = THREE.MathUtils.lerp(8.0, 0.8, t);
+        }
+        if (sceneData.ambientLight) {
+          sceneData.ambientLight.intensity = THREE.MathUtils.lerp(1.3, 0.1, t);
+        }
+        if (sceneData.rimLight) {
+          sceneData.rimLight.intensity = THREE.MathUtils.lerp(4.0, 0.4, t);
+        }
       }
     }
   }, []);
@@ -293,9 +304,6 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     sessionStorage.setItem('lex_verdict_delivered', 'true');
     setHasDelivered(true);
   };
-
-  // Darkness overlay opacity for seamless Phase 6 hand-off (only at the very end > 0.97)
-  const transitionDarknessOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.97) / 0.03));
 
   return (
     <div 
@@ -406,32 +414,11 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
                   onClick={onExploreClick}
                   className="inline-flex items-center gap-2.5 px-7 py-3 rounded-full bg-[#F3F0E8] text-[#080808] font-sans text-xs font-semibold tracking-wider hover:bg-[#E2B873] transition-all cursor-pointer shadow-2xl group"
                 >
-                  <span>Enter Chambers Docket</span>
+                  <span>Explore 3D Manifesto & Counsel</span>
                   <ArrowDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* PHASE 6: Seamless Camera Transition to Judge's Bench Surface */}
-        <div 
-          className="absolute inset-0 bg-[#060606] pointer-events-none z-30 transition-opacity duration-200"
-          style={{ opacity: transitionDarknessOpacity }}
-        />
-
-        {/* Transition Typography during bench push */}
-        {scrollProgress >= 0.96 && (
-          <div 
-            className="absolute inset-0 z-40 flex flex-col items-center justify-center text-center px-6 pointer-events-none transition-opacity duration-300"
-            style={{ opacity: Math.min(1, (scrollProgress - 0.96) / 0.03) }}
-          >
-            <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#C89B53] block mb-3">
-              THE TRANSITION
-            </span>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif text-[#F3F0E8] tracking-tight">
-              "THE RIGHT VOICE. THE RIGHT COUNSEL."
-            </h2>
           </div>
         )}
 

@@ -8,6 +8,8 @@ export interface GavelSceneObjects {
   soundBlock: THREE.Group;
   courtroomBench: THREE.Group;
   keyLight: THREE.SpotLight;
+  ambientLight: THREE.AmbientLight;
+  rimLight: THREE.DirectionalLight;
   dustParticles: THREE.Points;
   triggerDustBurst: () => void;
   updateDust: (delta: number) => void;
@@ -175,6 +177,8 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
     soundBlock,
     courtroomBench,
     keyLight,
+    ambientLight,
+    rimLight,
     dustParticles,
     triggerDustBurst,
     updateDust
