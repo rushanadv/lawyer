@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
-import { createMahoganyWoodPBR, createBrushedBrassPBR } from './proceduralTextures';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { createDarkWalnutPBR, createBrushedBrassPBR } from './proceduralTextures';
 
 export interface LoadedGavelAssembly {
   gavelPivot: THREE.Group;
@@ -11,13 +12,13 @@ export interface LoadedGavelAssembly {
   soundBlockMesh: THREE.Mesh;
   courtroomBench: THREE.Group;
   pivotPosition: THREE.Vector3;
-  exactContactAngle: number; // In radians, calculated from geometry
-  suspendedAngle: number;
-  raisedAngle: number;
+  exactContactAngle: number; // 0.0 rad (physical contact on block at Y = -1.34)
+  suspendedAngle: number;    // +0.244 rad (+14 deg)
+  raisedAngle: number;       // +0.488 rad (+28 deg)
 }
 
-// Compute UV mapping for cylindrical/turned STL meshes
-function generateCylindricalUVs(geometry: THREE.BufferGeometry, axis: 'X' | 'Y') {
+// Compute UV mapping aligned with each component's longitudinal lathe axis
+function generateLongitudinalUVs(geometry: THREE.BufferGeometry, axis: 'X' | 'Y' | 'PLANAR') {
   const pos = geometry.attributes.position;
   const count = pos.count;
   const uvs = new Float32Array(count * 2);
@@ -28,83 +29,110 @@ function generateCylindricalUVs(geometry: THREE.BufferGeometry, axis: 'X' | 'Y')
   const max = box.max;
   const lenX = Math.max(0.001, max.x - min.x);
   const lenY = Math.max(0.001, max.y - min.y);
+  const lenZ = Math.max(0.001, max.z - min.z);
 
   for (let i = 0; i < count; i++) {
     const x = pos.getX(i);
     const y = pos.getY(i);
     const z = pos.getZ(i);
 
-    if (axis === 'X') {
-      // Lathe along X: circumference in Y-Z plane
-      const theta = Math.atan2(z, y);
-      uvs[i * 2] = (theta + Math.PI) / (2 * Math.PI) * 2.0; // Wrap twice for fine grain
-      uvs[i * 2 + 1] = (x - min.x) / lenX * 3.0;
-    } else {
-      // Lathe along Y: circumference in X-Z plane
+    if (axis === 'Y') {
+      // Lathe along Y (Gavel Head & Brass Band):
+      // U = circumference around Y axis in XZ plane
+      // V = height along Y (grain runs longitudinally along head)
       const theta = Math.atan2(z, x);
-      uvs[i * 2] = (theta + Math.PI) / (2 * Math.PI) * 2.0;
-      uvs[i * 2 + 1] = (y - min.y) / lenY * 4.0;
+      uvs[i * 2]     = (theta + Math.PI) / (2 * Math.PI) * 2.0;
+      uvs[i * 2 + 1] = (y - min.y) / lenY * 2.5;
+    } else if (axis === 'X') {
+      // Lathe along X (Gavel Handle):
+      // U = circumference around X axis in YZ plane
+      // V = length along X (grain runs longitudinally along handle from grip to head)
+      const theta = Math.atan2(z, y);
+      uvs[i * 2]     = (theta + Math.PI) / (2 * Math.PI) * 2.0;
+      uvs[i * 2 + 1] = (x - min.x) / lenX * 3.5;
+    } else {
+      // Horizontal Planar / Radial (Sound Block):
+      // Top face shows circular growth rings & cross grain in XZ plane
+      uvs[i * 2]     = (x - min.x) / lenX * 1.5;
+      uvs[i * 2 + 1] = (z - min.z) / lenZ * 1.5;
     }
   }
 
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-  geometry.computeVertexNormals();
 }
 
 export async function loadModularGavelSTL(scene: THREE.Scene): Promise<LoadedGavelAssembly> {
   const loader = new STLLoader();
 
-  // Load the 4 modular STL components
-  const [headGeo, bandGeo, handleGeo, blockGeo] = await Promise.all([
-    loader.loadAsync('/stl/part_gavel_head.stl'),
-    loader.loadAsync('/stl/part_brass_band.stl'),
-    loader.loadAsync('/stl/part_gavel_handle.stl'),
-    loader.loadAsync('/stl/part_sound_block.stl')
+  // Load the 4 modular STL components from public assets
+  const loadWithFallback = async (name: string) => {
+    try {
+      return await loader.loadAsync(`/stl_assets/${name}`);
+    } catch {
+      return await loader.loadAsync(`/stl/${name}`);
+    }
+  };
+
+  const [rawHead, rawBand, rawHandle, rawBlock] = await Promise.all([
+    loadWithFallback('part_gavel_head.stl'),
+    loadWithFallback('part_brass_band.stl'),
+    loadWithFallback('part_gavel_handle.stl'),
+    loadWithFallback('part_sound_block.stl')
   ]);
 
-  // Generate UV mappings
-  generateCylindricalUVs(headGeo, 'X');
-  generateCylindricalUVs(bandGeo, 'X');
-  generateCylindricalUVs(handleGeo, 'Y');
-  generateCylindricalUVs(blockGeo, 'Y');
+  // STEP 2: Three.js BufferGeometryUtils Creased Normals (Math.PI / 4 = 45 deg)
+  // Preserves crisp striking faces, bevels, and brass lips while smoothing curved turned lathe surfaces
+  const headGeo   = BufferGeometryUtils.toCreasedNormals(rawHead, Math.PI / 4);
+  const bandGeo   = BufferGeometryUtils.toCreasedNormals(rawBand, Math.PI / 4);
+  const handleGeo = BufferGeometryUtils.toCreasedNormals(rawHandle, Math.PI / 4);
+  const blockGeo  = BufferGeometryUtils.toCreasedNormals(rawBlock, Math.PI / 4);
 
-  // Generate PBR Materials with high resolution procedural textures
-  const woodPBR = createMahoganyWoodPBR();
-  const brassPBR = createBrushedBrassPBR();
+  // STEP 3: Generate proper UV coordinates aligned with longitudinal axes
+  generateLongitudinalUVs(headGeo, 'Y');
+  generateLongitudinalUVs(bandGeo, 'Y');
+  generateLongitudinalUVs(handleGeo, 'X');
+  generateLongitudinalUVs(blockGeo, 'PLANAR');
 
+  // STEP 3: Realistic Dark Natural Walnut PBR & Restrained Brushed Antique Brass
+  const walnutPBR = createDarkWalnutPBR();
+  const brassPBR  = createBrushedBrassPBR();
+
+  // Dark Walnut Material (non-metallic, satiny oil sheen, subtle bump)
   const woodMaterial = new THREE.MeshStandardMaterial({
-    map: woodPBR.map,
-    roughnessMap: woodPBR.roughnessMap,
-    bumpMap: woodPBR.bumpMap,
-    bumpScale: 0.02,
-    roughness: 0.36,
-    metalness: 0.04,
+    map: walnutPBR.map,
+    roughnessMap: walnutPBR.roughnessMap,
+    bumpMap: walnutPBR.bumpMap,
+    bumpScale: 0.003,
+    roughness: 0.42,
+    metalness: 0.0,
     color: 0xffffff
   });
 
+  // Brushed Antique Brass Material (high metalness, fine brushing)
   const brassMaterial = new THREE.MeshStandardMaterial({
     map: brassPBR.map,
     roughnessMap: brassPBR.roughnessMap,
     bumpMap: brassPBR.bumpMap,
-    bumpScale: 0.01,
-    roughness: 0.18,
+    bumpScale: 0.002,
+    roughness: 0.28,
     metalness: 0.88,
-    color: 0xffdb7d
+    color: 0xffffff
   });
 
-  // Create Meshes from STL Geometries
+  // Create Meshes with Shadows
   const gavelHeadMesh = new THREE.Mesh(headGeo, woodMaterial);
   gavelHeadMesh.castShadow = true;
   gavelHeadMesh.receiveShadow = true;
 
   const brassBandMesh = new THREE.Mesh(bandGeo, brassMaterial);
   brassBandMesh.castShadow = true;
+  brassBandMesh.receiveShadow = true;
 
   const gavelHandleMesh = new THREE.Mesh(handleGeo, woodMaterial);
   gavelHandleMesh.castShadow = true;
   gavelHandleMesh.receiveShadow = true;
 
-  // Sound Block Mesh & Group
+  // Sound Block Mesh & Group (horizontal plinth, top face at Y = -1.34)
   const soundBlockMesh = new THREE.Mesh(blockGeo, woodMaterial);
   soundBlockMesh.castShadow = true;
   soundBlockMesh.receiveShadow = true;
@@ -114,46 +142,52 @@ export async function loadModularGavelSTL(scene: THREE.Scene): Promise<LoadedGav
   soundBlockGroup.position.set(0, 0, 0);
   scene.add(soundBlockGroup);
 
-  // Calculate actual block top world position
-  blockGeo.computeBoundingBox();
-  const blockMaxY = blockGeo.boundingBox!.max.y; // Top strike face (0.55)
+  // STEP 4: Assemble Single Pivot-Controlled Gavel Assembly
+  // Coordinate system baked into STLs:
+  // - Head: vertical along Y (striking face at bottom Y = -1.34)
+  // - Handle: horizontal along -X (connects to head at (0, 0, 0), extends to X = -5.08)
+  // - Brass band: seated flush on head at (0, 0, 0)
+  // - Zero individual rotations needed!
+  gavelHeadMesh.position.set(0, 0, 0);
+  gavelHeadMesh.rotation.set(0, 0, 0);
 
-  // Calculate head dimensions
-  headGeo.computeBoundingBox();
-  const headRadius = (headGeo.boundingBox!.max.y - headGeo.boundingBox!.min.y) / 2.0; // (0.52)
-  const armLength = 2.6; // Distance from head center to grip pivot
+  brassBandMesh.position.set(0, 0, 0);
+  brassBandMesh.rotation.set(0, 0, 0);
 
-  // Assemble Gavel Group
-  // Gavel head is along X, brass bands along X, handle along Y (extends to y = -3.4)
+  gavelHandleMesh.position.set(0, 0, 0);
+  gavelHandleMesh.rotation.set(0, 0, 0);
+
+  // Assembly parts group
   const gavelPartsGroup = new THREE.Group();
   gavelPartsGroup.add(gavelHeadMesh);
   gavelPartsGroup.add(brassBandMesh);
   gavelPartsGroup.add(gavelHandleMesh);
 
-  // Orient gavel assembly: head on X, handle extends along +Z, belly faces -Y
-  gavelPartsGroup.rotation.x = -Math.PI / 2;
-
-  // Contact height where bottom of head meets blockMaxY exactly
-  const contactHeadCenterY = blockMaxY + headRadius;
-  const pivotPosition = new THREE.Vector3(0.0, contactHeadCenterY, armLength);
+  // Pivot at handle grip: X = -4.6, Y = 0.0, Z = 0.0
+  const pivotX = -4.6;
+  const pivotY = 0.0;
+  const pivotPosition = new THREE.Vector3(pivotX, pivotY, 0.0);
 
   const gavelPivot = new THREE.Group();
   gavelPivot.position.copy(pivotPosition);
 
-  // Position parts relative to pivot
-  gavelPartsGroup.position.set(0, 0, -armLength);
+  // Offset parts group so (0,0,0) is at head and pivot is at -4.6
+  gavelPartsGroup.position.set(-pivotX, -pivotY, 0.0);
   gavelPivot.add(gavelPartsGroup);
+
   scene.add(gavelPivot);
 
-  // CALCULATE EXACT CONTACT ANGLE FROM WORLD-SPACE GEOMETRY
-  // At rotation.x = 0.0, the head center is at (0, contactHeadCenterY, 0)
-  // and the bottom of the head is at contactHeadCenterY - headRadius = blockMaxY.
-  // There is 0.0 gap and 0.0 penetration.
+  // Kinematic Strike Reference Angles (around Z-axis):
+  // rotation.z = 0.0 rad -> EXACT physical contact (bottom of head at Y = -1.34 touches sound block at Y = -1.34)
+  // rotation.z = +0.22 rad (+12.6 deg) -> Suspended poise
+  // rotation.z = +0.40 rad (+23.0 deg) -> Fully raised preparation pose
   const exactContactAngle = 0.0;
-  const suspendedAngle = 0.32; // Poised gracefully above block
-  const raisedAngle = 0.50;    // Pulled back in anticipation/preparation pose (30 deg)
+  const suspendedAngle = 0.22;
+  const raisedAngle = 0.40;
 
-  // Courtroom Bench Group (if not already in scene)
+  // Initial suspended pose
+  gavelPivot.rotation.z = suspendedAngle;
+
   const courtroomBench = new THREE.Group();
 
   return {

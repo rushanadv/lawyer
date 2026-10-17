@@ -59,11 +59,11 @@ async function verify() {
   });
 
   const states = [
-    { name: 'state_1_suspended', progress: 0.00, title: 'State 1: Gavel Suspended' },
-    { name: 'state_2_raised', progress: 0.38, title: 'State 2: Gavel Fully Raised' },
-    { name: 'state_3_halfway_strike', progress: 0.52, title: 'State 3: Gavel Halfway Through Downward Swing' },
-    { name: 'state_4_contact_impact', progress: 0.58, title: 'State 4: Gavel Making Contact with Sound Block' },
-    { name: 'state_5_settled_headline', progress: 0.72, title: 'State 5: Gavel Settled with Headline Visible' }
+    { name: 'state_1_suspended', progress: 0.00, title: 'State 1: Initial Suspended Gavel' },
+    { name: 'state_2_raised', progress: 0.44, title: 'State 2: Fully Raised Gavel' },
+    { name: 'state_3_halfway_strike', progress: 0.62, title: 'State 3: Mid-Swing Strike' },
+    { name: 'state_4_contact_impact', progress: 0.76, title: 'State 4: Exact Contact with Sound Block' },
+    { name: 'state_5_settled_headline', progress: 0.92, title: 'State 5: Gavel Settled with Headline Visible' }
   ];
 
   for (const st of states) {

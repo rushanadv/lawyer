@@ -27,7 +27,7 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
   const [isMuted, setIsMuted] = useState<boolean>(soundEngine.getIsMuted());
   const [cameraShake, setCameraShake] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const hasImpactPlayedRef = useRef<boolean>(false);
+  const lastProgressRef = useRef<number>(0);
   const animationFrameIdRef = useRef<number | null>(null);
 
   // Check sessionStorage
@@ -58,11 +58,11 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
 
-    // Cinematic Camera (hero three-quarters composition framing gavel + sound block)
-    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 50);
+    // Cinematic Camera (three-quarters perspective revealing vertical head, perpendicular handle, and sound block)
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 50);
     cameraRef.current = camera;
 
-    // Build the 3D scene (lighting, bench, atmosphere, dust)
+    // Build the 3D courtroom scene
     const sceneData = buildCinematicCourtroomScene();
     sceneObjectsRef.current = sceneData;
 
@@ -81,16 +81,16 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
       }
 
       // Initial suspended pose
-      assembly.gavelPivot.rotation.x = assembly.suspendedAngle;
+      assembly.gavelPivot.rotation.z = assembly.suspendedAngle;
     }).catch((err) => {
       console.warn('Modular STL loading note:', err);
     });
 
     let clock = new THREE.Clock();
 
-    // Initial Camera Transform (Frame 01: Hero balanced composition showing suspended wooden gavel + sound block)
-    const camStartPos = new THREE.Vector3(3.4, 2.7, 5.8);
-    const camTarget = new THREE.Vector3(0.0, 0.88, 0.6);
+    // Initial Camera Transform (Balanced three-quarters framing with generous headroom)
+    const camStartPos = new THREE.Vector3(3.2, 0.8, 7.8);
+    const camTarget = new THREE.Vector3(-1.4, -0.6, 0.0);
     camera.position.copy(camStartPos);
     camera.lookAt(camTarget);
 
@@ -98,10 +98,7 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     const render = () => {
       animationFrameIdRef.current = requestAnimationFrame(render);
       const delta = clock.getDelta();
-
-      // Update atmospheric dust
       sceneData.updateDust(delta);
-
       renderer.render(sceneData.scene, camera);
     };
 
@@ -150,147 +147,136 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     const assembly = gavelAssemblyRef.current;
     if (!sceneData || !canvasRef.current) return;
 
-    // Determine which pivot to animate (modular STL if loaded, otherwise procedural sceneData)
     const activePivot = assembly ? assembly.gavelPivot : sceneData.gavelPivot;
 
-    // Kinematic Angles:
-    // Suspended angle: ~0.32 rad (poised above sound block)
-    // Raised angle: ~0.65 rad (pulled back in anticipation/preparation)
-    // Strike impact angle: 0.0 rad (exact physical contact, 0 gap, 0 penetration)
-    const suspendedAngle = assembly ? assembly.suspendedAngle : 0.32;
-    const raisedAngle = assembly ? assembly.raisedAngle : 0.65;
+    const suspendedAngle = assembly ? assembly.suspendedAngle : 0.22;
+    const raisedAngle = assembly ? assembly.raisedAngle : 0.40;
     const exactContactAngle = assembly ? assembly.exactContactAngle : 0.0;
 
-    let gavelRotationX = exactContactAngle;
+    let gavelRotationZ = exactContactAngle;
 
     // ========================================================
-    // 1. KINEMATIC GAVEL SWING SEQUENCE (0.0 -> 1.0)
+    // STEP 5: CONTINUOUS SCROLL MASTER TIMELINE (0.0 -> 1.0)
     // ========================================================
-    if (progress <= 0.20) {
-      // Phase 1 (0–20%): Suspended Gavel with gentle organic micro-float
-      const floatOffset = Math.sin(Date.now() * 0.001) * 0.004;
-      gavelRotationX = suspendedAngle + floatOffset;
+    if (progress <= 0.25) {
+      // Phase 1 (0–25%): Suspended Gavel with gentle organic micro-float
+      const floatOffset = Math.sin(Date.now() * 0.001) * 0.003;
+      gavelRotationZ = suspendedAngle + floatOffset;
     } else if (progress <= 0.45) {
-      // Phase 2 (20–45%): Anticipation & Controlled Wind-up
-      // Gavel rotates backward into preparation pose
-      const t = (progress - 0.20) / (0.45 - 0.20);
-      const easeT = Math.sin((t * Math.PI) / 2); // ease-out curve for smooth wind-up
-      gavelRotationX = THREE.MathUtils.lerp(suspendedAngle, raisedAngle, easeT);
-    } else if (progress <= 0.58) {
-      // Phase 3A (45–58%): Downward Angular Acceleration
-      // Gavel accelerates toward the sound block (easeInCubic)
-      const t = (progress - 0.45) / (0.58 - 0.45);
-      const accel = Math.pow(t, 2.8);
-      gavelRotationX = THREE.MathUtils.lerp(raisedAngle, exactContactAngle, accel);
-    } else if (progress <= 0.63) {
-      // Phase 3B (58–63%): Physical Impact & Small Rebound
-      // Small, physically restrained bounce (~0.024 rad / ~1.3°) then settles firmly
-      const t = (progress - 0.58) / (0.63 - 0.58);
-      const bounce = Math.sin(t * Math.PI) * 0.024;
-      gavelRotationX = exactContactAngle + bounce;
+      // Phase 2 (25–45%): Gavel raises backward around its handle pivot into preparation pose
+      const t = (progress - 0.25) / (0.45 - 0.25);
+      const easeT = Math.sin((t * Math.PI) / 2); // natural wind-up ease-out
+      gavelRotationZ = THREE.MathUtils.lerp(suspendedAngle, raisedAngle, easeT);
+    } else if (progress <= 0.75) {
+      // Phase 3 (45–75%): Gavel swings downward, accelerating naturally toward sound block
+      const t = (progress - 0.45) / (0.75 - 0.45);
+      const accel = Math.pow(t, 2.6);
+      gavelRotationZ = THREE.MathUtils.lerp(raisedAngle, exactContactAngle, accel);
+    } else if (progress <= 0.85) {
+      // Phase 4 (75–85%): Striking surface contacts the sound block (0.0 gap, 0.0 penetration)
+      gavelRotationZ = exactContactAngle;
+    } else if (progress <= 0.90) {
+      // Phase 5 (85–90%): Tiny natural rebound followed by settling
+      const t = (progress - 0.85) / (0.90 - 0.85);
+      const rebound = Math.sin(t * Math.PI) * 0.016; // ~0.9 degrees restrained rebound
+      gavelRotationZ = exactContactAngle + rebound;
     } else {
-      // Phase 3C & onwards (63–100%): Firmly settled at rest on sound block
-      gavelRotationX = exactContactAngle;
+      // Phase 6 (90–100%): Firmly settled at rest on sound block, headline reveal
+      gavelRotationZ = exactContactAngle;
     }
 
     if (activePivot) {
-      activePivot.rotation.x = gavelRotationX;
+      activePivot.rotation.z = gavelRotationZ;
     }
 
     // ========================================================
-    // 2. STRIKE DETECTION & IMPACT EFFECTS (At progress 0.58)
+    // IMPACT AUDIO & RESTRAINED CAMERA IMPULSE (Crossing 0.75 in forward direction)
     // ========================================================
-    if (progress >= 0.575 && !hasImpactPlayedRef.current) {
-      hasImpactPlayedRef.current = true;
+    if (lastProgressRef.current < 0.75 && progress >= 0.75) {
       setHasDelivered(true);
       sessionStorage.setItem('lex_verdict_delivered', 'true');
 
       // Trigger Web Audio authentic wooden impact sound
       soundEngine.playGavelImpact();
 
-      // Trigger fine dust burst caught in the light shaft
-      sceneData.triggerDustBurst();
-
       // Physically restrained camera impulse
       const impulseSteps = [
-        { x: 3.5, y: -4.5 },
-        { x: -2.5, y: 3.0 },
-        { x: 1.2, y: -1.8 },
-        { x: -0.6, y: 0.8 },
+        { x: 3.0, y: -4.0 },
+        { x: -2.0, y: 2.5 },
+        { x: 1.0, y: -1.2 },
+        { x: -0.5, y: 0.6 },
         { x: 0, y: 0 }
       ];
       impulseSteps.forEach((step, idx) => {
-        setTimeout(() => setCameraShake(step), idx * 45);
+        setTimeout(() => setCameraShake(step), idx * 40);
       });
-    } else if (progress < 0.48) {
-      // Reset trigger if visitor scrolls backwards before the strike
-      hasImpactPlayedRef.current = false;
     }
 
-    if (progress >= 0.96) {
+    lastProgressRef.current = progress;
+
+    if (progress >= 0.97) {
       onTransitionComplete?.();
     }
 
     // ========================================================
-    // 3. CONTINUOUS CAMERA CHOREOGRAPHY (Consistent 3D Targets)
+    // STEP 6: CAMERA POSITIONING & CHOREOGRAPHY (Consistent 3D Targets)
     // ========================================================
     const camera = cameraRef.current;
     if (camera) {
-      if (progress <= 0.20) {
-        // Phase 1 (0–20%): Gavel suspended above sound block with gentle breathing float
-        const t = progress / 0.20;
-        camera.position.x = THREE.MathUtils.lerp(3.4, 3.35, t);
-        camera.position.y = THREE.MathUtils.lerp(2.7, 2.7, t);
-        camera.position.z = THREE.MathUtils.lerp(5.8, 5.7, t);
-        camera.lookAt(0.0, 0.88, 0.6);
+      if (progress <= 0.25) {
+        // Phase 1 (0–25%): Slow camera push toward the suspended gavel
+        const t = progress / 0.25;
+        camera.position.x = THREE.MathUtils.lerp(3.2, 2.9, t);
+        camera.position.y = THREE.MathUtils.lerp(0.8, 0.7, t);
+        camera.position.z = THREE.MathUtils.lerp(7.8, 7.2, t);
+        camera.lookAt(-1.4, -0.6, 0.0);
       } else if (progress <= 0.45) {
-        // Phase 2 (20–45%): Camera elevates gently as gavel rotates backward into wind-up
-        const t = (progress - 0.20) / (0.45 - 0.20);
-        camera.position.x = THREE.MathUtils.lerp(3.35, 3.3, t);
-        camera.position.y = THREE.MathUtils.lerp(2.7, 3.0, t);
-        camera.position.z = THREE.MathUtils.lerp(5.7, 5.7, t);
-        camera.lookAt(0.0, THREE.MathUtils.lerp(0.88, 1.12, t), 0.6);
-      } else if (progress <= 0.70) {
-        // Phase 3 (45–70%): Dynamic vantage point for downward strike & physical impact
-        const t = (progress - 0.45) / (0.70 - 0.45);
-        camera.position.x = THREE.MathUtils.lerp(3.3, 3.0, t);
-        camera.position.y = THREE.MathUtils.lerp(3.0, 2.45, t);
-        camera.position.z = THREE.MathUtils.lerp(5.7, 5.1, t);
-        camera.lookAt(0.0, THREE.MathUtils.lerp(1.12, 0.78, t), THREE.MathUtils.lerp(0.6, 0.38, t));
-      } else if (progress <= 0.85) {
-        // Phase 4 (70–85%): Settled gavel resting on sound block, headline reveal (GAVEL FULLY VISIBLE)
-        const t = (progress - 0.70) / (0.85 - 0.70);
-        camera.position.x = THREE.MathUtils.lerp(3.0, 2.9, t);
-        camera.position.y = THREE.MathUtils.lerp(2.45, 2.35, t);
-        camera.position.z = THREE.MathUtils.lerp(5.1, 4.9, t);
-        camera.lookAt(0.0, 0.78, 0.38);
+        // Phase 2 (25–45%): Camera elevates slightly as gavel raises into wind-up
+        const t = (progress - 0.25) / (0.45 - 0.25);
+        camera.position.x = THREE.MathUtils.lerp(2.9, 2.8, t);
+        camera.position.y = THREE.MathUtils.lerp(0.7, 1.15, t);
+        camera.position.z = THREE.MathUtils.lerp(7.2, 7.2, t);
+        camera.lookAt(-1.4, THREE.MathUtils.lerp(-0.6, -0.2, t), 0.0);
+      } else if (progress <= 0.75) {
+        // Phase 3 (45–75%): Dynamic vantage tracking downward strike
+        const t = (progress - 0.45) / (0.75 - 0.45);
+        camera.position.x = THREE.MathUtils.lerp(2.8, 2.6, t);
+        camera.position.y = THREE.MathUtils.lerp(1.15, 0.55, t);
+        camera.position.z = THREE.MathUtils.lerp(7.2, 6.8, t);
+        camera.lookAt(-1.4, THREE.MathUtils.lerp(-0.2, -0.7, t), 0.0);
+      } else if (progress <= 0.90) {
+        // Phase 4 & 5 (75–90%): Contact and settle framing
+        const t = (progress - 0.75) / (0.90 - 0.75);
+        camera.position.x = THREE.MathUtils.lerp(2.6, 2.4, t);
+        camera.position.y = THREE.MathUtils.lerp(0.55, 0.45, t);
+        camera.position.z = THREE.MathUtils.lerp(6.8, 6.4, t);
+        camera.lookAt(-1.4, -0.7, 0.0);
       } else {
-        // Phase 5 (85–100%): Seamless camera transition moving toward the courtroom desk
-        const t = (progress - 0.85) / 0.15;
-        camera.position.x = THREE.MathUtils.lerp(2.9, 1.4, t);
-        camera.position.y = THREE.MathUtils.lerp(2.35, 0.8, t);
-        camera.position.z = THREE.MathUtils.lerp(4.9, 2.5, t);
-        camera.lookAt(0.0, THREE.MathUtils.lerp(0.78, 0.1, t), THREE.MathUtils.lerp(0.38, -0.2, t));
+        // Phase 6 (90–100%): Seamless camera transition pushing toward bench desk surface
+        const t = (progress - 0.90) / 0.10;
+        camera.position.x = THREE.MathUtils.lerp(2.4, 1.2, t);
+        camera.position.y = THREE.MathUtils.lerp(0.45, -0.4, t);
+        camera.position.z = THREE.MathUtils.lerp(6.4, 3.6, t);
+        camera.lookAt(-1.4, THREE.MathUtils.lerp(-0.7, -1.2, t), 0.0);
       }
     }
   }, []);
 
-  // Quick Strike Action
+  // Quick Strike Action (Smoothly scrolls directly to impact contact at 75%)
   const strikeInstantly = useCallback(() => {
     if (!containerRef.current) return;
-    const scrollTarget = containerRef.current.offsetTop + containerRef.current.offsetHeight * 0.58;
+    const scrollTarget = containerRef.current.offsetTop + containerRef.current.offsetHeight * 0.75;
     window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
   }, []);
 
   // Replay Action
   const replayVerdict = useCallback(() => {
-    hasImpactPlayedRef.current = false;
+    lastProgressRef.current = 0;
     setHasDelivered(false);
     sessionStorage.removeItem('lex_verdict_delivered');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     soundEngine.playSubtleTick();
   }, []);
-
 
   // Sound toggle
   const toggleSound = () => {
@@ -308,19 +294,18 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     setHasDelivered(true);
   };
 
-
-  // Darkness overlay opacity for seamless Phase 5 hand-off (only at the very end > 0.94)
-  const transitionDarknessOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.94) / 0.06));
+  // Darkness overlay opacity for seamless Phase 6 hand-off (only at the very end > 0.97)
+  const transitionDarknessOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.97) / 0.03));
 
   return (
     <div 
       ref={containerRef}
       id="cinematic-hero-container"
-      className="relative w-full bg-[#0c0b0a]"
+      className="relative w-full bg-[#0a0908]"
       style={{ height: '350vh', minHeight: '350vh' }}
       aria-label="Cinematic 3D Courtroom Verdict"
     >
-      {/* Sticky Fullscreen 3D Viewport (Edge-to-edge, zero cards, zero borders) */}
+      {/* Sticky Fullscreen 3D Viewport (Edge-to-edge, zero borders, zero containers) */}
       <div 
         className="sticky top-0 left-0 w-full overflow-hidden select-none"
         style={{
@@ -338,39 +323,39 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
 
         {/* Minimal Editorial HUD Controls (top-right pill controls) */}
         <div className="absolute top-20 right-6 md:right-12 z-30 flex items-center gap-3 pointer-events-auto">
-            {hasDelivered && (
-              <button
-                onClick={replayVerdict}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-pill text-xs font-mono text-[#9E988F] hover:text-[#F3F0E8] transition-all cursor-pointer"
-                title="Replay 3D Verdict Sequence"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-[#C89B53]" />
-                <span className="hidden sm:inline">Replay 3D Sequence</span>
-              </button>
-            )}
-
+          {hasDelivered && (
             <button
-              onClick={skipIntro}
-              className="px-3 py-1.5 rounded-full glass-pill text-xs font-mono text-[#9E988F] hover:text-[#F3F0E8] transition-all cursor-pointer"
-            >
-              Skip Intro
-            </button>
-
-            <button
-              onClick={toggleSound}
+              onClick={replayVerdict}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-pill text-xs font-mono text-[#9E988F] hover:text-[#F3F0E8] transition-all cursor-pointer"
-              title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+              title="Replay 3D Verdict Sequence"
             >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-[#C89B53]" />}
-              <span className="hidden sm:inline">{isMuted ? 'Muted' : 'Sound On'}</span>
+              <RotateCcw className="w-3.5 h-3.5 text-[#C89B53]" />
+              <span className="hidden sm:inline">Replay 3D Sequence</span>
             </button>
-          </div>
+          )}
+
+          <button
+            onClick={skipIntro}
+            className="px-3 py-1.5 rounded-full glass-pill text-xs font-mono text-[#9E988F] hover:text-[#F3F0E8] transition-all cursor-pointer"
+          >
+            Skip Intro
+          </button>
+
+          <button
+            onClick={toggleSound}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-pill text-xs font-mono text-[#9E988F] hover:text-[#F3F0E8] transition-all cursor-pointer"
+            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+          >
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-[#C89B53]" />}
+            <span className="hidden sm:inline">{isMuted ? 'Muted' : 'Sound On'}</span>
+          </button>
+        </div>
 
         {/* FRAME 01 & 02: Initial Minimal Prompts (Before Strike) */}
-        {scrollProgress < 0.44 && (
+        {scrollProgress < 0.65 && (
           <div 
             className="absolute bottom-10 left-0 right-0 z-20 flex flex-col items-center justify-center text-center px-4 transition-opacity duration-300 pointer-events-auto"
-            style={{ opacity: 1 - scrollProgress * 2.2 }}
+            style={{ opacity: 1 - scrollProgress * 1.5 }}
           >
             <p className="font-mono text-xs md:text-sm tracking-[0.35em] uppercase text-[#E2B873]/90 drop-shadow-md mb-3">
               SCROLL TO DELIVER THE VERDICT
@@ -389,13 +374,13 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
           </div>
         )}
 
-        {/* FRAME 04 & 05: Editorial Headline Reveal (Strictly AFTER Strike: scroll 0.64 -> 0.90) */}
-        {scrollProgress >= 0.60 && scrollProgress < 0.90 && (
+        {/* FRAME 05: Editorial Headline Reveal (Strictly AFTER Contact: 90% – 100%) */}
+        {scrollProgress >= 0.88 && (
           <div 
             className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 pointer-events-none transition-all duration-300"
             style={{
-              opacity: scrollProgress >= 0.64 ? Math.min(1, (scrollProgress - 0.64) / 0.08) : 0,
-              transform: `scale(${1 - (scrollProgress - 0.64) * 0.12})`
+              opacity: Math.min(1, (scrollProgress - 0.88) / 0.05),
+              transform: `scale(${1 - (scrollProgress - 0.88) * 0.1})`
             }}
           >
             <div className="space-y-4 max-w-4xl">
@@ -429,17 +414,17 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
           </div>
         )}
 
-        {/* PHASE 5: Seamless Camera Transition to Judge's Bench Surface */}
+        {/* PHASE 6: Seamless Camera Transition to Judge's Bench Surface */}
         <div 
           className="absolute inset-0 bg-[#060606] pointer-events-none z-30 transition-opacity duration-200"
           style={{ opacity: transitionDarknessOpacity }}
         />
 
         {/* Transition Typography during bench push */}
-        {scrollProgress >= 0.90 && (
+        {scrollProgress >= 0.96 && (
           <div 
             className="absolute inset-0 z-40 flex flex-col items-center justify-center text-center px-6 pointer-events-none transition-opacity duration-300"
-            style={{ opacity: Math.min(1, (scrollProgress - 0.90) / 0.06) }}
+            style={{ opacity: Math.min(1, (scrollProgress - 0.96) / 0.03) }}
           >
             <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#C89B53] block mb-3">
               THE TRANSITION
