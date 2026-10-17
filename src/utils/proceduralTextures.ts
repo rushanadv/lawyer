@@ -19,12 +19,12 @@ export function createMahoganyWoodPBR(): WoodPBRMaps {
   colorCanvas.height = height;
   const colorCtx = colorCanvas.getContext('2d')!;
 
-  // Base rich dark mahogany gradient
+  // Base rich warm American walnut / mahogany gradient
   const grad = colorCtx.createLinearGradient(0, 0, width, height);
-  grad.addColorStop(0, '#2b140c');
-  grad.addColorStop(0.3, '#3d1d12');
-  grad.addColorStop(0.6, '#26110a');
-  grad.addColorStop(1, '#35170e');
+  grad.addColorStop(0, '#5e321e');
+  grad.addColorStop(0.3, '#7a4228');
+  grad.addColorStop(0.6, '#4f2817');
+  grad.addColorStop(1, '#6c3822');
   colorCtx.fillStyle = grad;
   colorCtx.fillRect(0, 0, width, height);
 
@@ -52,11 +52,11 @@ export function createMahoganyWoodPBR(): WoodPBRMaps {
       const subtleRay = (Math.sin(x * 0.02) * Math.cos(y * 0.03)) * 12;
 
       // Darken rings and add warm highlights
-      const shift = ringSharp + fiberNoise + subtleRay - 20;
+      const shift = ringSharp + fiberNoise + subtleRay - 15;
 
-      data[idx] = Math.min(255, Math.max(20, data[idx] + shift * 0.8));       // R
-      data[idx + 1] = Math.min(255, Math.max(10, data[idx + 1] + shift * 0.45)); // G
-      data[idx + 2] = Math.min(255, Math.max(5, data[idx + 2] + shift * 0.25));  // B
+      data[idx] = Math.min(255, Math.max(50, data[idx] + shift * 0.9));          // R
+      data[idx + 1] = Math.min(255, Math.max(30, data[idx + 1] + shift * 0.55)); // G
+      data[idx + 2] = Math.min(255, Math.max(15, data[idx + 2] + shift * 0.32)); // B
     }
   }
   colorCtx.putImageData(imgData, 0, 0);

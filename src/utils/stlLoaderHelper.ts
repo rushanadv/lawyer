@@ -76,20 +76,20 @@ export async function loadModularGavelSTL(scene: THREE.Scene): Promise<LoadedGav
     map: woodPBR.map,
     roughnessMap: woodPBR.roughnessMap,
     bumpMap: woodPBR.bumpMap,
-    bumpScale: 0.016,
-    roughness: 0.32,
+    bumpScale: 0.02,
+    roughness: 0.36,
     metalness: 0.04,
-    color: 0x4a2416
+    color: 0xffffff
   });
 
   const brassMaterial = new THREE.MeshStandardMaterial({
     map: brassPBR.map,
     roughnessMap: brassPBR.roughnessMap,
     bumpMap: brassPBR.bumpMap,
-    bumpScale: 0.008,
-    roughness: 0.20,
-    metalness: 0.94,
-    color: 0xe5ba6b
+    bumpScale: 0.01,
+    roughness: 0.18,
+    metalness: 0.88,
+    color: 0xffdb7d
   });
 
   // Create Meshes from STL Geometries
@@ -151,7 +151,7 @@ export async function loadModularGavelSTL(scene: THREE.Scene): Promise<LoadedGav
   // There is 0.0 gap and 0.0 penetration.
   const exactContactAngle = 0.0;
   const suspendedAngle = 0.32; // Poised gracefully above block
-  const raisedAngle = 0.65;    // Pulled back in anticipation/preparation pose
+  const raisedAngle = 0.50;    // Pulled back in anticipation/preparation pose (30 deg)
 
   // Courtroom Bench Group (if not already in scene)
   const courtroomBench = new THREE.Group();

@@ -15,8 +15,8 @@ export interface GavelSceneObjects {
 
 export function buildCinematicCourtroomScene(): GavelSceneObjects {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x060606);
-  scene.fog = new THREE.FogExp2(0x060606, 0.12);
+  scene.background = new THREE.Color(0x0c0b0a);
+  scene.fog = new THREE.FogExp2(0x0c0b0a, 0.02);
 
   // 1. Generate PBR Materials
   const woodPBR = createMahoganyWoodPBR();
@@ -27,20 +27,20 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
     map: woodPBR.map,
     roughnessMap: woodPBR.roughnessMap,
     bumpMap: woodPBR.bumpMap,
-    bumpScale: 0.015,
-    roughness: 0.32,
-    metalness: 0.05,
-    color: 0x4a2416,
+    bumpScale: 0.02,
+    roughness: 0.35,
+    metalness: 0.04,
+    color: 0xffffff,
   });
 
   const brassMaterial = new THREE.MeshStandardMaterial({
     map: brassPBR.map,
     roughnessMap: brassPBR.roughnessMap,
     bumpMap: brassPBR.bumpMap,
-    bumpScale: 0.008,
-    roughness: 0.22,
-    metalness: 0.92,
-    color: 0xe5ba6b,
+    bumpScale: 0.01,
+    roughness: 0.18,
+    metalness: 0.88,
+    color: 0xffdb7d,
   });
 
   const benchMaterial = new THREE.MeshStandardMaterial({
@@ -149,13 +149,15 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
   gavelMeshGroup.add(handleMesh);
   gavelMeshGroup.add(ferruleMesh);
 
-  // Position gavel relative to pivot point (pivot is at the handle grip for realistic swing physics!)
-  // Head is at distance 3.2 units along the handle
-  gavelMeshGroup.position.set(0, 3.2, 0);
+  // Orient gavel assembly: head on X, handle extends along +Z, belly faces -Y
+  gavelMeshGroup.rotation.x = -Math.PI / 2;
+  const armLength = 2.6;
+  gavelMeshGroup.position.set(0, 0, -armLength);
 
   // Pivot Group that handles rotation during scroll strike
   const gavelPivot = new THREE.Group();
-  gavelPivot.position.set(0, 0.55, 2.7); // Pivot sits on user side of bench
+  gavelPivot.position.set(0, 1.07, 2.6);
+  gavelPivot.rotation.x = 0.32; // Initial suspended pose
   gavelPivot.add(gavelMeshGroup);
   scene.add(gavelPivot);
 
@@ -247,41 +249,39 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
 
   scene.add(courtroomBench);
 
-  // 6. Physically Motivated Studio / Cinematic Lighting
-  // Dominant warm directional spotlight (Key Light from upper right, representing high courtroom window shaft)
-  const keyLight = new THREE.SpotLight(0xffecd1, 5.2);
-  keyLight.position.set(4.5, 7.5, 4.0);
-  keyLight.target = soundBlock;
-  keyLight.angle = Math.PI / 4.5;
-  keyLight.penumbra = 0.55;
-  keyLight.decay = 1.6;
-  keyLight.distance = 25;
+  // 6. Studio-grade Cinematic Courtroom Lighting (Bright, rich, fully illuminating the gavel)
+  // Dominant warm key light (cathedral window shaft illuminating top & strike face)
+  const keyLight = new THREE.SpotLight(0xfffaed, 8.5);
+  keyLight.position.set(4.5, 8.0, 5.0);
+  keyLight.target.position.set(0, 0.85, 0.5);
+  keyLight.angle = Math.PI / 3.2;
+  keyLight.penumbra = 0.45;
+  keyLight.decay = 1.2;
+  keyLight.distance = 30;
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.width = 2048;
   keyLight.shadow.mapSize.height = 2048;
-  keyLight.shadow.camera.near = 1;
-  keyLight.shadow.camera.far = 18;
   keyLight.shadow.bias = -0.0001;
   scene.add(keyLight);
   scene.add(keyLight.target);
 
-  // Cool Indirect Ambient Fill (representing soft indirect daylight in cathedral courtroom)
-  const fillLight = new THREE.DirectionalLight(0x6b829e, 0.55);
-  fillLight.position.set(-6, 4.5, 3.5);
+  // Soft Daylight Cool Fill (bounces from courtroom gallery, eliminates pitch-black shadows)
+  const fillLight = new THREE.DirectionalLight(0xa8c4e0, 2.2);
+  fillLight.position.set(-6, 5.0, 4.0);
   scene.add(fillLight);
 
-  // Warm Amber Rim Light (grazes top of gavel head and sound block edge from back)
-  const rimLight = new THREE.DirectionalLight(0xe8ad5a, 2.2);
-  rimLight.position.set(1.5, 3.5, -4.5);
+  // Amber Rim / Hair Light (separates the gavel silhouette from the dark background)
+  const rimLight = new THREE.DirectionalLight(0xffb84d, 4.5);
+  rimLight.position.set(-1.5, 4.5, -4.0);
   scene.add(rimLight);
 
-  // Subtle Contact Warmth Light near strike plate
-  const contactLight = new THREE.PointLight(0xe2b873, 0.6, 4, 2);
-  contactLight.position.set(0, 0.8, 0);
-  scene.add(contactLight);
+  // Warm Desk Bounce Light (reveals underside of gavel head and sound block tiers)
+  const deskBounce = new THREE.DirectionalLight(0xe8a958, 1.8);
+  deskBounce.position.set(0, -1.0, 3.0);
+  scene.add(deskBounce);
 
-  // Low ambient for filmic baseline
-  const ambientLight = new THREE.AmbientLight(0x181512, 0.4);
+  // Rich warm ambient base so the wood grain is always clearly visible
+  const ambientLight = new THREE.AmbientLight(0xfff2e0, 1.4);
   scene.add(ambientLight);
 
   // 7. Atmospheric Micro Dust Particles in Light Beam

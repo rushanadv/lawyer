@@ -35,7 +35,6 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     const delivered = sessionStorage.getItem('lex_verdict_delivered');
     if (delivered === 'true') {
       setHasDelivered(true);
-      hasImpactPlayedRef.current = true;
     }
   }, []);
 
@@ -55,17 +54,19 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.18;
+    renderer.toneMappingExposure = 1.35;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
 
-    // Cinematic Camera (full-frame ~70mm equivalent focal length for intimate courtroom close-up)
-    const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.1, 50);
+    // Cinematic Camera (hero three-quarters composition framing gavel + sound block)
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 50);
     cameraRef.current = camera;
 
     // Build the 3D scene (lighting, bench, atmosphere, dust)
     const sceneData = buildCinematicCourtroomScene();
     sceneObjectsRef.current = sceneData;
+
+    (window as any).__LEX_3D__ = { camera, sceneData, gavelAssemblyRef, renderer };
 
     // Asynchronously load the modular STL gavel assembly
     loadModularGavelSTL(sceneData.scene).then((assembly) => {
@@ -87,9 +88,9 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
 
     let clock = new THREE.Clock();
 
-    // Initial Camera Transform (0–20% Opening: Extreme cinematic close-up of suspended wooden gavel)
-    const camStartPos = new THREE.Vector3(1.1, 1.7, 2.2);
-    const camTarget = new THREE.Vector3(0, 1.4, 0.2);
+    // Initial Camera Transform (Frame 01: Hero balanced composition showing suspended wooden gavel + sound block)
+    const camStartPos = new THREE.Vector3(3.4, 2.7, 5.8);
+    const camTarget = new THREE.Vector3(0.0, 0.88, 0.6);
     camera.position.copy(camStartPos);
     camera.lookAt(camTarget);
 
@@ -236,40 +237,40 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     const camera = cameraRef.current;
     if (camera) {
       if (progress <= 0.20) {
-        // Phase 1 (0–20%): Extreme cinematic close-up of suspended wooden gavel
+        // Phase 1 (0–20%): Gavel suspended above sound block with gentle breathing float
         const t = progress / 0.20;
-        camera.position.x = THREE.MathUtils.lerp(1.1, 1.2, t);
-        camera.position.y = THREE.MathUtils.lerp(1.7, 1.8, t);
-        camera.position.z = THREE.MathUtils.lerp(2.2, 2.5, t);
-        camera.lookAt(0, 1.4, 0.2);
+        camera.position.x = THREE.MathUtils.lerp(3.4, 3.35, t);
+        camera.position.y = THREE.MathUtils.lerp(2.7, 2.7, t);
+        camera.position.z = THREE.MathUtils.lerp(5.8, 5.7, t);
+        camera.lookAt(0.0, 0.88, 0.6);
       } else if (progress <= 0.45) {
-        // Phase 2 (20–45%): Camera pushes closer, perspective shifts, sound block enters view
+        // Phase 2 (20–45%): Camera elevates gently as gavel rotates backward into wind-up
         const t = (progress - 0.20) / (0.45 - 0.20);
-        camera.position.x = THREE.MathUtils.lerp(1.2, 1.4, t);
-        camera.position.y = THREE.MathUtils.lerp(1.8, 2.1, t);
-        camera.position.z = THREE.MathUtils.lerp(2.5, 3.2, t);
-        camera.lookAt(0, THREE.MathUtils.lerp(1.4, 1.0, t), THREE.MathUtils.lerp(0.2, 0.1, t));
+        camera.position.x = THREE.MathUtils.lerp(3.35, 3.3, t);
+        camera.position.y = THREE.MathUtils.lerp(2.7, 3.0, t);
+        camera.position.z = THREE.MathUtils.lerp(5.7, 5.7, t);
+        camera.lookAt(0.0, THREE.MathUtils.lerp(0.88, 1.12, t), 0.6);
       } else if (progress <= 0.70) {
-        // Phase 3 (45–70%): The Strike & Impact vantage point
+        // Phase 3 (45–70%): Dynamic vantage point for downward strike & physical impact
         const t = (progress - 0.45) / (0.70 - 0.45);
-        camera.position.x = THREE.MathUtils.lerp(1.4, 0.8, t);
-        camera.position.y = THREE.MathUtils.lerp(2.1, 1.6, t);
-        camera.position.z = THREE.MathUtils.lerp(3.2, 2.8, t);
-        camera.lookAt(0, THREE.MathUtils.lerp(1.0, 0.65, t), THREE.MathUtils.lerp(0.1, 0.0, t));
+        camera.position.x = THREE.MathUtils.lerp(3.3, 3.0, t);
+        camera.position.y = THREE.MathUtils.lerp(3.0, 2.45, t);
+        camera.position.z = THREE.MathUtils.lerp(5.7, 5.1, t);
+        camera.lookAt(0.0, THREE.MathUtils.lerp(1.12, 0.78, t), THREE.MathUtils.lerp(0.6, 0.38, t));
       } else if (progress <= 0.85) {
-        // Phase 4 (70–85%): Camera settles on resting gavel, headline reveal
+        // Phase 4 (70–85%): Settled gavel resting on sound block, headline reveal (GAVEL FULLY VISIBLE)
         const t = (progress - 0.70) / (0.85 - 0.70);
-        camera.position.x = THREE.MathUtils.lerp(0.8, 0.4, t);
-        camera.position.y = THREE.MathUtils.lerp(1.6, 1.3, t);
-        camera.position.z = THREE.MathUtils.lerp(2.8, 2.4, t);
-        camera.lookAt(0, 0.55, 0.0);
+        camera.position.x = THREE.MathUtils.lerp(3.0, 2.9, t);
+        camera.position.y = THREE.MathUtils.lerp(2.45, 2.35, t);
+        camera.position.z = THREE.MathUtils.lerp(5.1, 4.9, t);
+        camera.lookAt(0.0, 0.78, 0.38);
       } else {
-        // Phase 5 (85–100%): Camera moves toward dark polished walnut bench surface for seamless wipe
+        // Phase 5 (85–100%): Seamless camera transition moving toward the courtroom desk
         const t = (progress - 0.85) / 0.15;
-        camera.position.x = THREE.MathUtils.lerp(0.4, 0.0, t);
-        camera.position.y = THREE.MathUtils.lerp(1.3, 0.12, t);
-        camera.position.z = THREE.MathUtils.lerp(2.4, 1.1, t);
-        camera.lookAt(0, 0.0, -0.4);
+        camera.position.x = THREE.MathUtils.lerp(2.9, 1.4, t);
+        camera.position.y = THREE.MathUtils.lerp(2.35, 0.8, t);
+        camera.position.z = THREE.MathUtils.lerp(4.9, 2.5, t);
+        camera.lookAt(0.0, THREE.MathUtils.lerp(0.78, 0.1, t), THREE.MathUtils.lerp(0.38, -0.2, t));
       }
     }
   }, []);
@@ -308,20 +309,23 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
   };
 
 
-  // Darkness overlay opacity for seamless Phase 5 bench-surface wipe
-  const transitionDarknessOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.78) / 0.18));
+  // Darkness overlay opacity for seamless Phase 5 hand-off (only at the very end > 0.94)
+  const transitionDarknessOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.94) / 0.06));
 
   return (
     <div 
       ref={containerRef}
       id="cinematic-hero-container"
-      className="relative w-full h-[280vh] bg-[#060606]"
+      className="relative w-full bg-[#0c0b0a]"
+      style={{ height: '350vh', minHeight: '350vh' }}
       aria-label="Cinematic 3D Courtroom Verdict"
     >
       {/* Sticky Fullscreen 3D Viewport (Edge-to-edge, zero cards, zero borders) */}
       <div 
-        className="sticky top-0 left-0 w-full h-screen overflow-hidden select-none"
+        className="sticky top-0 left-0 w-full overflow-hidden select-none"
         style={{
+          height: '100vh',
+          width: '100%',
           transform: `translate(${cameraShake.x}px, ${cameraShake.y}px)`,
           transition: cameraShake.x !== 0 ? 'none' : 'transform 0.3s ease-out'
         }}
@@ -332,17 +336,8 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
           className="absolute inset-0 w-full h-full block" 
         />
 
-        {/* Minimal Editorial Top HUD */}
-        <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-6 md:px-12 pt-7 pointer-events-auto">
-          <div className="flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-[#C89B53] animate-pulse" />
-            <span className="font-display tracking-[0.25em] text-xs uppercase text-[#E2B873] font-semibold">
-              LEX VERA
-            </span>
-            <span className="text-[#66615B] text-xs font-mono hidden sm:inline">| COURT OF CHANCERY</span>
-          </div>
-
-          <div className="flex items-center gap-3">
+        {/* Minimal Editorial HUD Controls (top-right pill controls) */}
+        <div className="absolute top-20 right-6 md:right-12 z-30 flex items-center gap-3 pointer-events-auto">
             {hasDelivered && (
               <button
                 onClick={replayVerdict}
@@ -370,7 +365,6 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
               <span className="hidden sm:inline">{isMuted ? 'Muted' : 'Sound On'}</span>
             </button>
           </div>
-        </header>
 
         {/* FRAME 01 & 02: Initial Minimal Prompts (Before Strike) */}
         {scrollProgress < 0.44 && (
@@ -395,13 +389,13 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
           </div>
         )}
 
-        {/* FRAME 04: Editorial Headline Reveal (After Strike: scroll 0.48 -> 0.78) */}
-        {scrollProgress >= 0.46 && scrollProgress < 0.85 && (
+        {/* FRAME 04 & 05: Editorial Headline Reveal (Strictly AFTER Strike: scroll 0.64 -> 0.90) */}
+        {scrollProgress >= 0.60 && scrollProgress < 0.90 && (
           <div 
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 pointer-events-none transition-all duration-500"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 pointer-events-none transition-all duration-300"
             style={{
-              opacity: scrollProgress >= 0.50 ? Math.min(1, (scrollProgress - 0.50) / 0.08) : 0,
-              transform: `scale(${1 - (scrollProgress - 0.50) * 0.15})`
+              opacity: scrollProgress >= 0.64 ? Math.min(1, (scrollProgress - 0.64) / 0.08) : 0,
+              transform: `scale(${1 - (scrollProgress - 0.64) * 0.12})`
             }}
           >
             <div className="space-y-4 max-w-4xl">
@@ -442,10 +436,10 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
         />
 
         {/* Transition Typography during bench push */}
-        {scrollProgress >= 0.78 && (
+        {scrollProgress >= 0.90 && (
           <div 
             className="absolute inset-0 z-40 flex flex-col items-center justify-center text-center px-6 pointer-events-none transition-opacity duration-300"
-            style={{ opacity: Math.min(1, (scrollProgress - 0.78) / 0.12) }}
+            style={{ opacity: Math.min(1, (scrollProgress - 0.90) / 0.06) }}
           >
             <span className="font-mono text-xs tracking-[0.3em] uppercase text-[#C89B53] block mb-3">
               THE TRANSITION
