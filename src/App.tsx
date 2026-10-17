@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Lawyer, IntakeFilters } from './types';
 import { SAMPLE_LAWYERS } from './data/lawyers';
 import { Navbar } from './components/Navbar';
-import { GavelHero } from './components/GavelHero';
+import { CinematicGavelHero } from './components/CinematicGavelHero';
 import { VerdictTransition } from './components/VerdictTransition';
 import { LegalIntake } from './components/LegalIntake';
 import { DecisionDesk } from './components/DecisionDesk';
@@ -130,8 +130,8 @@ export const App: React.FC = () => {
       />
 
       <main>
-        {/* 1. Gavel Verdict Cinematic Opening */}
-        <GavelHero
+        {/* 1. Photorealistic 3D Courtroom Verdict Sequence */}
+        <CinematicGavelHero
           onExploreClick={() => scrollToSection('transition-section')}
         />
 

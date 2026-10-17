@@ -31,7 +31,7 @@ export const VerdictTransition: React.FC<VerdictTransitionProps> = ({ onProceedT
       {/* Editorial typography reveal */}
       <div className="max-w-3xl space-y-6 pt-4 relative z-10">
         <h2 className="text-3xl sm:text-5xl md:text-6xl font-serif text-[#F3F0E8] tracking-tight leading-tight">
-          "Every case deserves the right voice.
+          "THE RIGHT DEFENSE BEGINS WITH THE RIGHT VOICE.
           <span className="block italic text-gold-gradient font-normal mt-2">
             Let’s find yours."
           </span>
