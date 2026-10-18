@@ -17,8 +17,8 @@ export interface GavelSceneObjects {
 
 export function buildCinematicCourtroomScene(): GavelSceneObjects {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a0908);
-  scene.fog = new THREE.FogExp2(0x0a0908, 0.015);
+  scene.background = new THREE.Color(0x060504);
+  scene.fog = new THREE.FogExp2(0x060504, 0.025);
 
   // 1. Generate PBR Materials
   const woodPBR = createDarkWalnutPBR();
@@ -28,26 +28,26 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
     map: woodPBR.map,
     roughnessMap: woodPBR.roughnessMap,
     bumpMap: woodPBR.bumpMap,
-    bumpScale: 0.003,
-    roughness: 0.42,
+    bumpScale: 0.0015,
+    roughness: 0.65,
     metalness: 0.0,
-    color: 0xffffff,
+    color: 0xeeeeee,
   });
 
   const benchMaterial = new THREE.MeshStandardMaterial({
     map: benchPBR.map,
     roughnessMap: benchPBR.roughnessMap,
     bumpMap: benchPBR.bumpMap,
-    bumpScale: 0.006,
-    roughness: 0.38,
-    metalness: 0.02,
-    color: 0xffffff,
+    bumpScale: 0.003,
+    roughness: 0.75,
+    metalness: 0.0,
+    color: 0x110e0b,
   });
 
   const leatherMaterial = new THREE.MeshStandardMaterial({
-    roughness: 0.60,
-    metalness: 0.05,
-    color: 0x14110e,
+    roughness: 0.85,
+    metalness: 0.0,
+    color: 0x0c0a08,
   });
 
   // Temporary placeholder meshes (will be replaced by modular STLs in stlLoaderHelper)
@@ -70,70 +70,41 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
   soundBlock.add(dummyBlockMesh);
   scene.add(soundBlock);
 
-  // 2. Build Courtroom Bench & Desk Architecture
+  // 2. Build Courtroom Bench Architecture (minimal, dark, zero reflective gold)
   const courtroomBench = new THREE.Group();
 
-  // Leather Desk Blotter (immediately below sound block base at Y = -1.82)
+  // Dark matte leather desk blotter
   const blotterGeo = new THREE.BoxGeometry(9.0, 0.04, 6.0);
   const blotter = new THREE.Mesh(blotterGeo, leatherMaterial);
   blotter.position.set(-1.0, -1.84, 0.4);
   blotter.receiveShadow = true;
   courtroomBench.add(blotter);
 
-  // Gold Tooling Border on Leather Blotter
-  const goldBorderPoints = [
-    new THREE.Vector3(-5.2, -1.815, -2.4),
-    new THREE.Vector3( 3.2, -1.815, -2.4),
-    new THREE.Vector3( 3.2, -1.815,  3.2),
-    new THREE.Vector3(-5.2, -1.815,  3.2),
-    new THREE.Vector3(-5.2, -1.815, -2.4)
-  ];
-  const goldBorderGeo = new THREE.BufferGeometry().setFromPoints(goldBorderPoints);
-  const goldBorderMat = new THREE.LineBasicMaterial({ color: 0xc89b53, linewidth: 2 });
-  const goldBorder = new THREE.Line(goldBorderGeo, goldBorderMat);
-  courtroomBench.add(goldBorder);
-
-  // Judge's Bench Desk Top (thick solid oak slab)
-  const benchTopGeo = new THREE.BoxGeometry(20, 0.6, 12);
+  // Judge's bench desk top (deep matte ebony/smoked oak)
+  const benchTopGeo = new THREE.BoxGeometry(22, 0.6, 14);
   const benchTop = new THREE.Mesh(benchTopGeo, benchMaterial);
   benchTop.position.set(0, -2.16, 0.8);
   benchTop.receiveShadow = true;
   courtroomBench.add(benchTop);
 
-  // Molded Bench Front Lip
-  const lipGeo = new THREE.BoxGeometry(20.2, 0.3, 0.4);
-  const benchLip = new THREE.Mesh(lipGeo, benchMaterial);
-  benchLip.position.set(0, -1.95, 6.8);
-  benchLip.receiveShadow = true;
-  courtroomBench.add(benchLip);
-
-  // Background Courtroom Wood Paneling Wall (at z = -7.5)
-  const wallGeo = new THREE.BoxGeometry(28, 16, 0.8);
+  // Subtle background wall paneling
+  const wallGeo = new THREE.BoxGeometry(30, 18, 0.8);
   const wall = new THREE.Mesh(wallGeo, benchMaterial);
-  wall.position.set(0, 4.5, -7.5);
+  wall.position.set(0, 4.5, -8.0);
   wall.receiveShadow = true;
   courtroomBench.add(wall);
 
-  // Architectural Wainscoting Pilasters
-  for (let i = -10; i <= 10; i += 5) {
-    const pilasterGeo = new THREE.BoxGeometry(0.9, 14, 0.4);
-    const pilaster = new THREE.Mesh(pilasterGeo, benchMaterial);
-    pilaster.position.set(i, 4.5, -7.0);
-    pilaster.receiveShadow = true;
-    courtroomBench.add(pilaster);
-  }
-
   scene.add(courtroomBench);
 
-  // 3. Studio-grade Cinematic Lighting (Key, Fill, Rim, Ambient)
-  // Dominant warm key light (cathedral window shaft illuminating the vertical head and sound block)
-  const keyLight = new THREE.SpotLight(0xfffaec, 8.0);
-  keyLight.position.set(3.8, 6.5, 5.2);
-  keyLight.target.position.set(-0.5, -0.5, 0.0);
-  keyLight.angle = Math.PI / 3.4;
-  keyLight.penumbra = 0.40;
-  keyLight.decay = 1.1;
-  keyLight.distance = 35;
+  // 3. Cinematic Chiaroscuro Studio Lighting (Controlled warm raking key, soft ambient, antique rim)
+  // Thin, controlled warm raking light revealing the rich dark walnut texture and silhouette
+  const keyLight = new THREE.SpotLight(0xfffaec, 6.2);
+  keyLight.position.set(2.8, 5.0, 4.0);
+  keyLight.target.position.set(-0.3, -0.6, 0.0);
+  keyLight.angle = Math.PI / 4.5;
+  keyLight.penumbra = 0.55;
+  keyLight.decay = 1.2;
+  keyLight.distance = 30;
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.width = 2048;
   keyLight.shadow.mapSize.height = 2048;
@@ -141,26 +112,20 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
   scene.add(keyLight);
   scene.add(keyLight.target);
 
-  // Soft Daylight Cool Fill (bounces from courtroom gallery, reveals handle and shadow depth)
-  const fillLight = new THREE.DirectionalLight(0xb0c8e0, 2.0);
-  fillLight.position.set(-6.0, 4.5, 3.5);
-  scene.add(fillLight);
-
-  // Amber Rim Light (sharp silhouette rim separating dark walnut from the background)
-  const rimLight = new THREE.DirectionalLight(0xe8b050, 4.0);
-  rimLight.position.set(-2.0, 4.5, -4.5);
-  scene.add(rimLight);
-
-  // Desk Bounce Light (reveals underside of head, brass bands, and sound block tiers)
-  const deskBounce = new THREE.DirectionalLight(0xdfa050, 1.4);
-  deskBounce.position.set(0.5, -2.0, 3.0);
-  scene.add(deskBounce);
-
-  // Rich warm ambient base so wood grain is always clearly readable
-  const ambientLight = new THREE.AmbientLight(0xfff5e6, 1.3);
+  // Soft, warm courtroom ambient base (reveals rich walnut wood grain without washing out deep contrast)
+  const ambientLight = new THREE.AmbientLight(0x322820, 0.95);
   scene.add(ambientLight);
 
-  // Clean empty points object to preserve interface without random floating pixels
+  // Warm antique rim light tracing the silhouette edge of the dark walnut and brass band
+  const rimLight = new THREE.DirectionalLight(0xdeb880, 1.8);
+  rimLight.position.set(-3.2, 3.8, -3.2);
+  scene.add(rimLight);
+
+  // Subtle warm under-bounce from the matte desk blotter
+  const deskBounce = new THREE.DirectionalLight(0x503c28, 0.65);
+  deskBounce.position.set(0.0, -2.5, 2.0);
+  scene.add(deskBounce);
+
   const dummyDustGeo = new THREE.BufferGeometry();
   dummyDustGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
   const dummyDustMat = new THREE.PointsMaterial({ size: 0, visible: false });

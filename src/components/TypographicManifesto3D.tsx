@@ -39,11 +39,11 @@ export const TypographicManifesto3D: React.FC<TypographicManifesto3DProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    const camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 350);
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 350);
     cameraRef.current = camera;
 
-    // Initial Camera Transform (seamless continuation from gavel exit)
-    camera.position.set(1.2, -0.4, 3.6);
+    // Match-cut continuation from dark wood gavel surface
+    camera.position.set(0.0, -0.6, 2.0);
     camera.lookAt(0.0, 0.0, -48.0);
 
     let isMounted = true;
@@ -105,7 +105,7 @@ export const TypographicManifesto3D: React.FC<TypographicManifesto3DProps> = ({
         setActiveWordLabel('I. JUSTICE');
       } else if (progress < 0.58) {
         setActiveWordLabel('II. ACCESS');
-      } else if (progress < 0.82) {
+      } else if (progress < 0.84) {
         setActiveWordLabel('III. CLARITY');
       } else {
         setActiveWordLabel('THE MANIFESTO');
@@ -126,108 +126,52 @@ export const TypographicManifesto3D: React.FC<TypographicManifesto3DProps> = ({
     if (!sceneData || !camera) return;
 
     // ========================================================
-    // MASTER CAMERA FLIGHT PATH THROUGH 3D TYPOGRAPHY (0.0 -> 1.0)
+    // 1. ADVANCED CONTINUOUS CAMERA RIG VIA CatmullRomCurve3
+    // Guarantees smooth tangent, collision-free corridor, zero abrupt jumps
     // ========================================================
+    const camPos = sceneData.cameraSpline.getPointAt(progress);
+    const lookAheadProgress = Math.min(1.0, progress + 0.05);
+    const lookPos = sceneData.cameraSpline.getPointAt(lookAheadProgress);
 
-    let camX = 0;
-    let camY = 0;
-    let camZ = 3.6;
-    let targetX = 0;
-    let targetY = 0;
-    let targetZ = -48.0;
-    let rollZ = 0;
+    camera.position.copy(camPos);
+    camera.lookAt(lookPos.x, lookPos.y, lookPos.z - 15.0);
 
-    if (progress <= 0.08) {
-      // 0–8%: Exit the gavel environment into deep black atmospheric void
-      const t = progress / 0.08;
-      const easeT = Math.sin((t * Math.PI) / 2);
-      camX = THREE.MathUtils.lerp(1.2, 0.0, easeT);
-      camY = THREE.MathUtils.lerp(-0.4, 0.0, easeT);
-      camZ = THREE.MathUtils.lerp(3.6, -18.0, easeT);
-      targetX = 0.0;
-      targetY = 0.0;
-      targetZ = -48.0;
-    } else if (progress <= 0.30) {
-      // 8–30%: JUSTICE
-      // 8-15%: Camera advances toward readable composition (Z: -18 -> -26)
-      // 15-24%: Letters separate in 3D space
-      // 24-30%: Camera flies between S and T at Z = -48 (Z: -36 -> -65)
-      const t = (progress - 0.08) / (0.30 - 0.08);
-
-      // Flight through opening between S (-5.8) and T (+5.4)
-      camX = THREE.MathUtils.lerp(0.0, -0.2, Math.sin(t * Math.PI));
-      camY = THREE.MathUtils.lerp(0.0, 0.1, t);
-      camZ = THREE.MathUtils.lerp(-18.0, -68.0, t);
-
-      targetX = THREE.MathUtils.lerp(0.0, 1.0, t);
-      targetY = 0.0;
-      targetZ = THREE.MathUtils.lerp(-48.0, -108.0, t);
-    } else if (progress <= 0.55) {
-      // 30–55%: ACCESS
-      // 30-40%: Monolithic cluster visible ahead (Z: -68 -> -88)
-      // 40-48%: Spacing expands, vertical axis rotations
-      // 48-55%: Camera performs graceful S-curve between C2 (-2.2) and E (+5.5)
-      const t = (progress - 0.30) / (0.55 - 0.30);
-
-      const sCurve = Math.sin(t * Math.PI);
-      camX = THREE.MathUtils.lerp(-0.2, 1.4, t) + sCurve * 1.6;
-      camY = THREE.MathUtils.lerp(0.1, -0.15, t);
-      camZ = THREE.MathUtils.lerp(-68.0, -128.0, t);
-
-      // Subtle architectural banking tilt
-      rollZ = Math.sin(t * Math.PI) * 0.038;
-
-      targetX = THREE.MathUtils.lerp(1.0, -0.4, t);
-      targetY = 0.0;
-      targetZ = THREE.MathUtils.lerp(-108.0, -168.0, t);
-    } else if (progress <= 0.80) {
-      // 55–80%: CLARITY
-      // 55-64%: Fragmented across depths
-      // 64-73%: Converges into crystal-clear tranquil alignment
-      // 73-80%: Parts for final central camera flight
-      const t = (progress - 0.55) / (0.80 - 0.55);
-
-      camX = THREE.MathUtils.lerp(1.4, 0.0, Math.sin(t * Math.PI * 0.5));
-      camY = THREE.MathUtils.lerp(-0.15, 0.0, t);
-      camZ = THREE.MathUtils.lerp(-128.0, -186.0, t);
-
-      targetX = 0.0;
-      targetY = 0.0;
-      targetZ = THREE.MathUtils.lerp(-168.0, -220.0, t);
+    // Subtle architectural Dutch banking tilt during ACCESS S-curve (progress 0.40 -> 0.56)
+    if (progress >= 0.40 && progress <= 0.56) {
+      const bankT = (progress - 0.40) / 0.16;
+      camera.rotation.z = Math.sin(bankT * Math.PI) * 0.035;
     } else {
-      // 80–100%: Smooth deceleration into final quiet editorial manifesto
-      const t = (progress - 0.80) / (1.0 - 0.80);
-      const easeT = 1 - Math.pow(1 - t, 2.5); // Smooth natural deceleration
-
-      camX = 0.0;
-      camY = THREE.MathUtils.lerp(0.0, 0.0, easeT);
-      camZ = THREE.MathUtils.lerp(-186.0, -208.0, easeT);
-
-      targetX = 0.0;
-      targetY = 0.0;
-      targetZ = -250.0;
+      camera.rotation.z = 0;
     }
 
-    camera.position.set(camX, camY, camZ);
-    camera.lookAt(targetX, targetY, targetZ);
-    camera.rotation.z += rollZ;
-
-    // Follow spot keylight to ensure dramatic letter face illumination
-    sceneData.keyLight.position.set(camX + 10, camY + 14, camZ + 8);
-    sceneData.keyLight.target.position.set(targetX, targetY, targetZ);
+    // Moving Key Spotlight tracks with the camera rig
+    sceneData.keyLight.position.set(camPos.x + 8, camPos.y + 12, camPos.z + 8);
+    sceneData.keyLight.target.position.set(lookPos.x, lookPos.y, lookPos.z - 15.0);
     sceneData.keyLight.target.updateMatrixWorld();
 
     // ========================================================
-    // INDEPENDENT 3D LETTER TRANSFORMATIONS
+    // 2. STRICT STATION ISOLATION WITH DISTANT GATEWAY EMERGENCE
+    // At hero readable moments, only one word is active in the scene!
+    // During fly-throughs, the next word emerges ahead in atmospheric distance.
+    // ========================================================
+    sceneData.justiceGroup.visible = progress <= 0.28;
+    sceneData.accessGroup.visible = progress >= 0.18 && progress <= 0.62;
+    sceneData.clarityGroup.visible = progress >= 0.48 && progress <= 0.92;
+
+    // ========================================================
+    // 3. CHOREOGRAPHED SCULPTURAL LETTER TRANSFORMATIONS
     // ========================================================
     sceneData.letters.forEach((item) => {
       const { mesh, word, basePos, baseRot, displacedPos, displacedRot, fragmentedPos, fragmentedRot } = item;
 
       if (word === 'JUSTICE') {
-        // JUSTICE: holds readable aligned pose (8-16%), separates (16-26%), holds opening (26-30%)
+        // JUSTICE:
+        // 0.08 - 0.16: HERO READABLE MOMENT (basePos, baseRot)
+        // 0.16 - 0.24: Heavy sculptural parting opening passage between S and T
+        // 0.24 - 0.30: Passage held wide as camera glides through
         let factor = 0;
         if (progress > 0.16) {
-          factor = Math.min(1, (progress - 0.16) / 0.10);
+          factor = Math.min(1, (progress - 0.16) / 0.08);
         }
         const easeFactor = factor * factor * (3 - 2 * factor); // smoothstep
 
@@ -237,10 +181,13 @@ export const TypographicManifesto3D: React.FC<TypographicManifesto3DProps> = ({
         mesh.rotation.z = THREE.MathUtils.lerp(baseRot.z, displacedRot.z, easeFactor);
 
       } else if (word === 'ACCESS') {
-        // ACCESS: starts compressed (30–38%), expands outward & rotates (38–50%)
+        // ACCESS:
+        // 0.30 - 0.44: HERO READABLE MOMENT (classical monolithic composition)
+        // 0.44 - 0.54: Expands outward like an architectural gateway
+        // 0.54 - 0.62: Gateway held wide as camera sweeps through
         let factor = 0;
-        if (progress > 0.38) {
-          factor = Math.min(1, (progress - 0.38) / 0.12);
+        if (progress > 0.44) {
+          factor = Math.min(1, (progress - 0.44) / 0.10);
         }
         const easeFactor = Math.sin((factor * Math.PI) / 2);
 
@@ -251,12 +198,12 @@ export const TypographicManifesto3D: React.FC<TypographicManifesto3DProps> = ({
 
       } else if (word === 'CLARITY') {
         // CLARITY:
-        // 1. Fragmented at distance (progress < 0.60)
-        // 2. Converges into perfect alignment (0.60 -> 0.72)
-        // 3. Holds serene alignment (0.70 -> 0.73)
-        // 4. Parts gracefully for camera passage (0.73 -> 0.80)
-        if (progress <= 0.73) {
-          const factor = Math.max(0, Math.min(1, (progress - 0.58) / 0.12));
+        // 0.62 - 0.68: Letters subtly fragmented across depth planes converge
+        // 0.68 - 0.76: HERO READABLE MOMENT (perfect classical focus)
+        // 0.76 - 0.84: Letters part gently between R and I as camera glides through
+        // 0.84 - 0.92: Flight completes into tranquil darkness
+        if (progress <= 0.76) {
+          const factor = Math.max(0, Math.min(1, (progress - 0.62) / 0.06));
           const easeFactor = factor * factor * (3 - 2 * factor);
 
           if (fragmentedPos && fragmentedRot) {
@@ -266,8 +213,8 @@ export const TypographicManifesto3D: React.FC<TypographicManifesto3DProps> = ({
             mesh.rotation.z = THREE.MathUtils.lerp(fragmentedRot.z, baseRot.z, easeFactor);
           }
         } else {
-          // Final parting flight
-          const factor = Math.min(1, (progress - 0.73) / 0.07);
+          // Parting flight
+          const factor = Math.min(1, (progress - 0.76) / 0.08);
           const easeFactor = factor * factor;
 
           mesh.position.lerpVectors(basePos, displacedPos, easeFactor);
@@ -316,10 +263,10 @@ export const TypographicManifesto3D: React.FC<TypographicManifesto3DProps> = ({
         </div>
 
         {/* PROLOGUE PROMPT (0–8%): Transition from Gavel */}
-        {scrollProgress < 0.10 && (
+        {scrollProgress < 0.08 && (
           <div 
             className="absolute bottom-12 left-0 right-0 z-20 flex flex-col items-center justify-center text-center px-4 pointer-events-none transition-opacity duration-300"
-            style={{ opacity: 1 - scrollProgress * 10 }}
+            style={{ opacity: 1 - scrollProgress * 12 }}
           >
             <p className="font-mono text-xs md:text-sm tracking-[0.35em] uppercase text-[#E2B873]/90 drop-shadow-md mb-2">
               SCROLL TO ENTER THE MANIFESTO

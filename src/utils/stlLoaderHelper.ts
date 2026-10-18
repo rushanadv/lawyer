@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { createDarkWalnutPBR, createBrushedBrassPBR } from './proceduralTextures';
+import { createDarkWalnutPBR, createSoundBlockWalnutPBR, createBrushedBrassPBR } from './proceduralTextures';
 
 export interface LoadedGavelAssembly {
   gavelPivot: THREE.Group;
@@ -52,9 +52,11 @@ function generateLongitudinalUVs(geometry: THREE.BufferGeometry, axis: 'X' | 'Y'
       uvs[i * 2 + 1] = (x - min.x) / lenX * 3.5;
     } else {
       // Horizontal Planar / Radial (Sound Block):
-      // Top face shows circular growth rings & cross grain in XZ plane
-      uvs[i * 2]     = (x - min.x) / lenX * 1.5;
-      uvs[i * 2 + 1] = (z - min.z) / lenZ * 1.5;
+      // Centered circular coordinates in XZ plane for growth rings
+      const cx = (min.x + max.x) * 0.5;
+      const cz = (min.z + max.z) * 0.5;
+      uvs[i * 2]     = (x - cx) / lenX + 0.5;
+      uvs[i * 2 + 1] = (z - cz) / lenZ + 0.5;
     }
   }
 
@@ -94,29 +96,41 @@ export async function loadModularGavelSTL(scene: THREE.Scene): Promise<LoadedGav
   generateLongitudinalUVs(blockGeo, 'PLANAR');
 
   // STEP 3: Realistic Dark Natural Walnut PBR & Restrained Brushed Antique Brass
-  const walnutPBR = createDarkWalnutPBR();
-  const brassPBR  = createBrushedBrassPBR();
+  const walnutPBR     = createDarkWalnutPBR();
+  const soundBlockPBR = createSoundBlockWalnutPBR();
+  const brassPBR      = createBrushedBrassPBR();
 
-  // Dark Walnut Material (non-metallic, satiny oil sheen, subtle bump)
+  // Dark Walnut Material for Gavel Head & Handle
   const woodMaterial = new THREE.MeshStandardMaterial({
     map: walnutPBR.map,
     roughnessMap: walnutPBR.roughnessMap,
     bumpMap: walnutPBR.bumpMap,
-    bumpScale: 0.003,
-    roughness: 0.42,
+    bumpScale: 0.0012,
+    roughness: 0.65,
     metalness: 0.0,
     color: 0xffffff
   });
 
-  // Brushed Antique Brass Material (high metalness, fine brushing)
+  // Dedicated Sound Block Material (smooth, non-rippled end-grain)
+  const soundBlockMaterial = new THREE.MeshStandardMaterial({
+    map: soundBlockPBR.map,
+    roughnessMap: soundBlockPBR.roughnessMap,
+    bumpMap: soundBlockPBR.bumpMap,
+    bumpScale: 0.0004,
+    roughness: 0.64,
+    metalness: 0.0,
+    color: 0xffffff
+  });
+
+  // Brushed Antique Brass Material (understated warm patina, brushed matte metal)
   const brassMaterial = new THREE.MeshStandardMaterial({
     map: brassPBR.map,
     roughnessMap: brassPBR.roughnessMap,
     bumpMap: brassPBR.bumpMap,
-    bumpScale: 0.002,
-    roughness: 0.28,
-    metalness: 0.88,
-    color: 0xffffff
+    bumpScale: 0.0012,
+    roughness: 0.44,
+    metalness: 0.76,
+    color: 0xd8d0c0
   });
 
   // Create Meshes with Shadows
@@ -133,7 +147,7 @@ export async function loadModularGavelSTL(scene: THREE.Scene): Promise<LoadedGav
   gavelHandleMesh.receiveShadow = true;
 
   // Sound Block Mesh & Group (horizontal plinth, top face at Y = -1.34)
-  const soundBlockMesh = new THREE.Mesh(blockGeo, woodMaterial);
+  const soundBlockMesh = new THREE.Mesh(blockGeo, soundBlockMaterial);
   soundBlockMesh.castShadow = true;
   soundBlockMesh.receiveShadow = true;
 

@@ -88,9 +88,9 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
 
     let clock = new THREE.Clock();
 
-    // Initial Camera Transform (Balanced three-quarters framing with generous headroom)
-    const camStartPos = new THREE.Vector3(3.2, 0.8, 7.8);
-    const camTarget = new THREE.Vector3(-1.4, -0.6, 0.0);
+    // Initial Camera Transform: Shot 01 Extreme Macro Close-up of striking head & dark walnut grain
+    const camStartPos = new THREE.Vector3(0.9, 0.9, 2.0);
+    const camTarget = new THREE.Vector3(-0.15, 0.9, 0.0);
     camera.position.copy(camStartPos);
     camera.lookAt(camTarget);
 
@@ -219,55 +219,77 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     }
 
     // ========================================================
-    // STEP 6: CAMERA POSITIONING & CHOREOGRAPHY (Consistent 3D Targets)
+    // SHOTS 01–04: CINEMATIC CAMERA CHOREOGRAPHY
     // ========================================================
     const camera = cameraRef.current;
     if (camera) {
       if (progress <= 0.25) {
-        // Phase 1 (0–25%): Slow camera push toward the suspended gavel
+        // Shot 01 (0–25%): The Macro Reveal
+        // Begins in extreme macro close-up of the striking head & dark walnut wood grain,
+        // then smoothly pulls back to establish the gavel, handle, and sound block
         const t = progress / 0.25;
-        camera.position.x = THREE.MathUtils.lerp(3.2, 2.9, t);
-        camera.position.y = THREE.MathUtils.lerp(0.8, 0.7, t);
-        camera.position.z = THREE.MathUtils.lerp(7.8, 7.2, t);
-        camera.lookAt(-1.4, -0.6, 0.0);
+        const easeT = Math.sin((t * Math.PI) / 2);
+        camera.position.x = THREE.MathUtils.lerp(0.9, 2.4, easeT);
+        camera.position.y = THREE.MathUtils.lerp(0.9, 0.5, easeT);
+        camera.position.z = THREE.MathUtils.lerp(2.0, 4.8, easeT);
+        camera.lookAt(
+          THREE.MathUtils.lerp(-0.15, -0.8, easeT),
+          THREE.MathUtils.lerp(0.9, -0.4, easeT),
+          0.0
+        );
       } else if (progress <= 0.45) {
-        // Phase 2 (25–45%): Camera elevates slightly as gavel raises into wind-up
+        // Shot 02 (25–45%): The Anticipation
+        // Gavel lifts backward; camera moves around the striking head in a controlled arc
         const t = (progress - 0.25) / (0.45 - 0.25);
-        camera.position.x = THREE.MathUtils.lerp(2.9, 2.8, t);
-        camera.position.y = THREE.MathUtils.lerp(0.7, 1.15, t);
-        camera.position.z = THREE.MathUtils.lerp(7.2, 7.2, t);
-        camera.lookAt(-1.4, THREE.MathUtils.lerp(-0.6, -0.2, t), 0.0);
+        camera.position.x = THREE.MathUtils.lerp(2.4, 2.5, t);
+        camera.position.y = THREE.MathUtils.lerp(0.5, 0.9, t);
+        camera.position.z = THREE.MathUtils.lerp(4.8, 4.4, t);
+        camera.lookAt(
+          THREE.MathUtils.lerp(-0.8, -0.5, t),
+          THREE.MathUtils.lerp(-0.4, 0.2, t),
+          0.0
+        );
       } else if (progress <= 0.75) {
-        // Phase 3 (45–75%): Dynamic vantage tracking downward strike
+        // Shot 03 (45–75%): The Impact
+        // Gavel swings downward with accelerating physical weight
         const t = (progress - 0.45) / (0.75 - 0.45);
-        camera.position.x = THREE.MathUtils.lerp(2.8, 2.6, t);
-        camera.position.y = THREE.MathUtils.lerp(1.15, 0.55, t);
-        camera.position.z = THREE.MathUtils.lerp(7.2, 6.8, t);
-        camera.lookAt(-1.4, THREE.MathUtils.lerp(-0.2, -0.7, t), 0.0);
-      } else if (progress <= 0.90) {
-        // Phase 4 & 5 (75–90%): Contact and settle framing
-        const t = (progress - 0.75) / (0.90 - 0.75);
-        camera.position.x = THREE.MathUtils.lerp(2.6, 2.4, t);
-        camera.position.y = THREE.MathUtils.lerp(0.55, 0.45, t);
-        camera.position.z = THREE.MathUtils.lerp(6.8, 6.4, t);
-        camera.lookAt(-1.4, -0.7, 0.0);
+        camera.position.x = THREE.MathUtils.lerp(2.5, 2.1, t);
+        camera.position.y = THREE.MathUtils.lerp(0.9, 0.1, t);
+        camera.position.z = THREE.MathUtils.lerp(4.4, 3.8, t);
+        camera.lookAt(
+          THREE.MathUtils.lerp(-0.5, -0.2, t),
+          THREE.MathUtils.lerp(0.2, -0.85, t),
+          0.0
+        );
+      } else if (progress <= 0.88) {
+        // Contact, Rebound & Settle (75–88%)
+        const t = (progress - 0.75) / (0.88 - 0.75);
+        camera.position.x = THREE.MathUtils.lerp(2.1, 1.8, t);
+        camera.position.y = THREE.MathUtils.lerp(0.1, -0.1, t);
+        camera.position.z = THREE.MathUtils.lerp(3.8, 3.4, t);
+        camera.lookAt(-0.2, -0.85, 0.0);
       } else {
-        // Phase 6 (90–100%): Seamless camera transition pushing forward into dark atmospheric void
-        const t = (progress - 0.90) / 0.10;
-        camera.position.x = THREE.MathUtils.lerp(2.4, 1.2, t);
-        camera.position.y = THREE.MathUtils.lerp(0.45, -0.4, t);
-        camera.position.z = THREE.MathUtils.lerp(6.4, 3.6, t);
-        camera.lookAt(-1.4, THREE.MathUtils.lerp(-0.7, -1.2, t), 0.0);
+        // Shot 04 (88–100%): The Match-Cut Transition
+        // Camera glides toward the dark wood contact surface as courtroom dims to black
+        const t = (progress - 0.88) / 0.12;
+        camera.position.x = THREE.MathUtils.lerp(1.8, 0.0, t);
+        camera.position.y = THREE.MathUtils.lerp(-0.1, -1.0, t);
+        camera.position.z = THREE.MathUtils.lerp(3.4, 1.4, t);
+        camera.lookAt(
+          THREE.MathUtils.lerp(-0.2, 0.0, t),
+          THREE.MathUtils.lerp(-0.85, -1.34, t),
+          0.0
+        );
 
-        // Environmental lighting dims naturally using scene depth, not CSS fade
+        // Environmental lighting dims smoothly into total darkness for seamless transition into 3D typography
         if (sceneData.keyLight) {
-          sceneData.keyLight.intensity = THREE.MathUtils.lerp(8.0, 0.8, t);
+          sceneData.keyLight.intensity = THREE.MathUtils.lerp(6.2, 0.4, t);
         }
         if (sceneData.ambientLight) {
-          sceneData.ambientLight.intensity = THREE.MathUtils.lerp(1.3, 0.1, t);
+          sceneData.ambientLight.intensity = THREE.MathUtils.lerp(0.95, 0.05, t);
         }
         if (sceneData.rimLight) {
-          sceneData.rimLight.intensity = THREE.MathUtils.lerp(4.0, 0.4, t);
+          sceneData.rimLight.intensity = THREE.MathUtils.lerp(1.8, 0.1, t);
         }
       }
     }
