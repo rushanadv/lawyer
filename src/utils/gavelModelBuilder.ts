@@ -73,24 +73,24 @@ export function buildCinematicCourtroomScene(): GavelSceneObjects {
   // 2. Build Courtroom Bench Architecture (minimal, dark, zero reflective gold)
   const courtroomBench = new THREE.Group();
 
-  // Dark matte leather desk blotter
-  const blotterGeo = new THREE.BoxGeometry(9.0, 0.04, 6.0);
+  // Luxurious executive dark leather desk blotter seamlessly covering viewport
+  const blotterGeo = new THREE.BoxGeometry(60.0, 0.04, 50.0);
   const blotter = new THREE.Mesh(blotterGeo, leatherMaterial);
-  blotter.position.set(-1.0, -1.84, 0.4);
+  blotter.position.set(0.0, -1.84, 0.0);
   blotter.receiveShadow = true;
   courtroomBench.add(blotter);
 
   // Judge's bench desk top (deep matte ebony/smoked oak)
-  const benchTopGeo = new THREE.BoxGeometry(22, 0.6, 14);
+  const benchTopGeo = new THREE.BoxGeometry(70.0, 0.6, 60.0);
   const benchTop = new THREE.Mesh(benchTopGeo, benchMaterial);
   benchTop.position.set(0, -2.16, 0.8);
   benchTop.receiveShadow = true;
   courtroomBench.add(benchTop);
 
   // Subtle background wall paneling
-  const wallGeo = new THREE.BoxGeometry(30, 18, 0.8);
+  const wallGeo = new THREE.BoxGeometry(70.0, 24.0, 0.8);
   const wall = new THREE.Mesh(wallGeo, benchMaterial);
-  wall.position.set(0, 4.5, -8.0);
+  wall.position.set(0, 4.5, -12.0);
   wall.receiveShadow = true;
   courtroomBench.add(wall);
 

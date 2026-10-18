@@ -28,6 +28,7 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
   const [cameraShake, setCameraShake] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const lastProgressRef = useRef<number>(0);
+  const hasTransitionedRef = useRef<boolean>(false);
   const animationFrameIdRef = useRef<number | null>(null);
 
   // Check sessionStorage
@@ -58,8 +59,8 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
 
-    // Cinematic Camera (three-quarters perspective revealing vertical head, perpendicular handle, and sound block)
-    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 50);
+    // Cinematic Camera (35mm / 85mm anamorphic prime perspective, FOV: 36 deg)
+    const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 50);
     cameraRef.current = camera;
 
     // Build the 3D courtroom scene
@@ -88,9 +89,9 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
 
     let clock = new THREE.Clock();
 
-    // Initial Camera Transform: Shot 01 Extreme Macro Close-up of striking head & dark walnut grain
-    const camStartPos = new THREE.Vector3(0.9, 0.9, 2.0);
-    const camTarget = new THREE.Vector3(-0.15, 0.9, 0.0);
+    // Initial Camera Transform: Shot 01 Macro Reveal of striking head, brass band & dark walnut grain
+    const camStartPos = new THREE.Vector3(1.1, 0.75, 2.4);
+    const camTarget = new THREE.Vector3(-0.30, 0.65, 0.0);
     camera.position.copy(camStartPos);
     camera.lookAt(camTarget);
 
@@ -212,11 +213,12 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
       });
     }
 
-    lastProgressRef.current = progress;
-
-    if (progress >= 0.97) {
+    if (progress >= 0.97 && lastProgressRef.current < 0.97 && !hasTransitionedRef.current) {
+      hasTransitionedRef.current = true;
       onTransitionComplete?.();
     }
+
+    lastProgressRef.current = progress;
 
     // ========================================================
     // SHOTS 01–04: CINEMATIC CAMERA CHOREOGRAPHY
@@ -229,12 +231,12 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
         // then smoothly pulls back to establish the gavel, handle, and sound block
         const t = progress / 0.25;
         const easeT = Math.sin((t * Math.PI) / 2);
-        camera.position.x = THREE.MathUtils.lerp(0.9, 2.4, easeT);
-        camera.position.y = THREE.MathUtils.lerp(0.9, 0.5, easeT);
-        camera.position.z = THREE.MathUtils.lerp(2.0, 4.8, easeT);
+        camera.position.x = THREE.MathUtils.lerp(1.1, 2.4, easeT);
+        camera.position.y = THREE.MathUtils.lerp(0.75, 0.5, easeT);
+        camera.position.z = THREE.MathUtils.lerp(2.4, 4.8, easeT);
         camera.lookAt(
-          THREE.MathUtils.lerp(-0.15, -0.8, easeT),
-          THREE.MathUtils.lerp(0.9, -0.4, easeT),
+          THREE.MathUtils.lerp(-0.30, -0.8, easeT),
+          THREE.MathUtils.lerp(0.65, -0.4, easeT),
           0.0
         );
       } else if (progress <= 0.45) {
@@ -305,6 +307,7 @@ export const CinematicGavelHero: React.FC<CinematicGavelHeroProps> = ({
   // Replay Action
   const replayVerdict = useCallback(() => {
     lastProgressRef.current = 0;
+    hasTransitionedRef.current = false;
     setHasDelivered(false);
     sessionStorage.removeItem('lex_verdict_delivered');
     window.scrollTo({ top: 0, behavior: 'smooth' });

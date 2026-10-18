@@ -3,6 +3,7 @@ import type { Lawyer, IntakeFilters } from './types';
 import { SAMPLE_LAWYERS } from './data/lawyers';
 import { Navbar } from './components/Navbar';
 import { CinematicGavelHero } from './components/CinematicGavelHero';
+import { FloatingLegalPapers3D } from './components/FloatingLegalPapers3D';
 import { TypographicManifesto3D } from './components/TypographicManifesto3D';
 import { LegalIntake } from './components/LegalIntake';
 import { DecisionDesk } from './components/DecisionDesk';
@@ -132,10 +133,22 @@ export const App: React.FC = () => {
       <main>
         {/* 1. Photorealistic 3D Courtroom Verdict Sequence */}
         <CinematicGavelHero
-          onExploreClick={() => scrollToSection('manifesto-section')}
+          onExploreClick={() => scrollToSection('legal-papers-section')}
+          onTransitionComplete={() => {
+            const el = document.getElementById('legal-papers-section');
+            if (el && window.scrollY < el.offsetTop) {
+              scrollToSection('legal-papers-section');
+            }
+          }}
         />
 
-        {/* 2. Cinematic 3D Typographic Manifesto (JUSTICE · ACCESS · CLARITY) */}
+        {/* 2. Cinematic 3D Floating Legal Documents Sequence */}
+        <FloatingLegalPapers3D
+          onExploreManifesto={() => scrollToSection('manifesto-section')}
+          onProceedToIntake={() => scrollToSection('intake-section')}
+        />
+
+        {/* 3. Cinematic 3D Typographic Manifesto (JUSTICE · ACCESS · CLARITY) */}
         <TypographicManifesto3D
           onProceedToIntake={() => scrollToSection('intake-section')}
         />
